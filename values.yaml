@@ -1,0 +1,5 @@
+# krateo-oas is a SINGLETON registry chart — it has no per-instance configuration. Its real
+# "content" is the merged apis/** RestDefinitions + configmaps/** OAS ConfigMaps, which
+# templates/registry.yaml renders verbatim. `global` exists only so CDC generates a non-empty
+# (but trivial) CRD from values.schema.json.
+global: {}

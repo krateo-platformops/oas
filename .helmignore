@@ -1,0 +1,8 @@
+# Exclude repo scaffolding from the chart package. Do NOT ignore apis/ or configmaps/ —
+# templates/registry.yaml reads them via .Files.Glob, so they MUST be packaged.
+.git/
+.github/
+*.md
+dist/
+*.tgz
+.DS_Store

@@ -2,29 +2,40 @@
 
 OpenAPI → Kubernetes-kind GitOps publish path for the Krateo **API Builder** (KOG).
 
-The portal's API Builder (Autopilot rail) authors a `RestDefinition` (ogen.krateo.io) from a
-pasted OpenAPI document and opens a **pull request** against this repo — one PR per API kind, on
-a `builder/<kind>` branch — instead of writing the CR straight to the cluster. Each PR carries:
+This repo is **also a Helm chart**: its root is a singleton "API registry" chart that the Krateo
+composition-dynamic-controller (CDC) renders. Merged API-Builder artifacts under `apis/**` and
+`configmaps/**` become **live cluster resources** — a merged PR is a live kind. The human PR merge
+is the **hard gate**: nothing reaches the cluster before it.
 
 ```
 apis/<kind>/restdefinition.yaml      # the RestDefinition CR (kind, group, verbs → the generated K8s kind)
-apis/<kind>/openapi.yaml             # (paste-case) the source OpenAPI document, held verbatim
+configmaps/<kind>-oas.yaml           # a ConfigMap manifest (name: <kind>-oas) holding the OpenAPI doc,
+                                     # referenced by the RestDefinition's oasPath configmap:// URL
+Chart.yaml, values.yaml, values.schema.json, templates/registry.yaml   # the registry chart
 ```
+
+`templates/registry.yaml` globs `configmaps/*-oas.yaml` + `apis/**/restdefinition.yaml` and emits
+each verbatim, so CDC **owns, drift-heals, and prunes** them natively — no bespoke controller, no
+in-cluster poll loop.
 
 ## The flow
 
-1. **Author** — API Builder proposes the RestDefinition; the human reviews the full YAML at a
-   blast-radius gate in the rail.
-2. **PR** — a `builder/<kind>` branch + PR lands here (github.krateo.io provider CRs).
-3. **Review & merge** — a human merges. Nothing reaches the cluster before this gate.
-4. **Reconcile** *(the GitOps apply — see "Status" below)* — the merged `apis/<kind>/*` is applied
-   to the cluster; the oasgen/KOG controller generates the CRD + controller and the new kind
-   (`Refund · billing.acme.io`, etc.) appears Ready in the registry.
+1. **Author** — the API Builder (Autopilot rail) proposes the `RestDefinition` + OAS `ConfigMap`;
+   the human reviews the full YAML at a blast-radius gate in the rail.
+2. **PR** — a `builder/<kind>` branch + PR lands here, authored via the github.krateo.io provider CRs
+   (`RepoContent`/`PullRequest`). `pr-ci.yaml` statically validates each proposed RestDefinition.
+3. **Review & merge** — a human merges. **This is the hard gate** — nothing reaches the cluster before it.
+4. **Release** — on merge to `main`, `release-oci.yaml` packages + pushes the chart to
+   `oci://ghcr.io/braghettos/krateo/krateo-oas:<tag>`, and the `krateo-oas` installer-component pin
+   is bumped to `<tag>` (a git commit — the durable component-pins path; no `kubectl apply`).
+5. **Materialise** — CDC pulls the new pinned chart version and renders it → the `RestDefinition`
+   + OAS `ConfigMap` go live → oasgen-provider generates the CRD + controller and the new kind
+   (`Refund · billing.acme.io`, etc.) appears Ready. A merged deletion PR → next version → CDC prunes.
 
-## Status
+## Why a chart, not a poller
 
-Steps 1–3 are live (portal ≥ 1.5.72 / frontend ≥ 1.3.77). **Step 4 (merge → live kind) is not yet
-wired**: it needs a GitOps apply mechanism (CI that `kubectl apply`s the merged `apis/**` manifests,
-or a Flux/Argo/rest-dynamic-controller watch on this repo). Until that exists, a merged PR does not
-auto-materialise the kind — apply the RestDefinition manually, or add the apply step. See the portal
-memory note `ux-round2-punchlist` for the decision context.
+CDC renders a Composition from a **pinned chart version** and can't chase a git branch, so the
+merge→live trigger is the release step (step 4), not an in-cluster watch. That keeps the whole loop
+inside native CDC semantics — apply, self-heal, and prune are the controller's job — and adds no
+runtime component. The only new automation is standard release plumbing (tag + publish + pin bump),
+and the human merge stays the authoritative gate.

@@ -1,0 +1,24 @@
+{{- /*
+Render every merged API-Builder artifact as a live cluster resource.
+
+Source of truth = the repo's `configmaps/<kind>-oas.yaml` (a ConfigMap manifest) and
+`apis/<kind>/restdefinition.yaml` (a RestDefinition manifest), which a human merges via PR
+(the hard gate). Because these are chart resources, the composition-dynamic-controller applies,
+drift-heals, and — when a file is removed in a later merge — PRUNES them, all natively.
+
+Ordering: OAS ConfigMaps first, then RestDefinitions. A RestDefinition's `spec.oasPath` points at
+its ConfigMap (`configmap://<ns>/<kind>-oas/openapi.yaml`); oasgen-provider reconciles the
+RestDefinition asynchronously and retries until the ConfigMap exists, so ordering is a courtesy,
+not a hard requirement. Neither manifest carries a namespace — CDC applies both into the
+composition's namespace (krateo-system), which is exactly what the oasPath references.
+*/ -}}
+{{- range $path, $_ := .Files.Glob "configmaps/*-oas.yaml" }}
+---
+# from {{ $path }}
+{{ $.Files.Get $path }}
+{{- end }}
+{{- range $path, $_ := .Files.Glob "apis/**/restdefinition.yaml" }}
+---
+# from {{ $path }}
+{{ $.Files.Get $path }}
+{{- end }}

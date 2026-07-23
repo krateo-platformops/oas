@@ -1,0 +1,18 @@
+apiVersion: v2
+name: krateo-oas
+description: >-
+  Registry of merged Krateo API-Builder RestDefinitions (+ their OAS ConfigMaps), rendered as
+  live cluster resources by the composition-dynamic-controller. A merged PR to this repo becomes
+  a live kind; the human PR merge is the hard gate. templates/registry.yaml globs apis/** and
+  configmaps/** and emits each verbatim, so CDC owns, heals, and prunes them natively — no
+  bespoke controller, no in-cluster poll loop.
+type: application
+
+# CHART_VERSION is substituted by .github/workflows/release-oci.yaml at tag time (<- the git tag).
+# There is no application image, so appVersion tracks the chart version.
+version: CHART_VERSION
+appVersion: CHART_VERSION
+
+home: https://github.com/braghettos/krateo-oas
+sources:
+  - https://github.com/braghettos/krateo-oas

@@ -6,7 +6,7 @@
 name: pr-ci
 on:
   pull_request:
-    paths: ['apis/**']
+    paths: ['apis/**', 'configmaps/**']
 permissions:
   contents: read
 jobs:
@@ -41,11 +41,14 @@ jobs:
                   bad.append(f"{p}: spec.oasPath is required")
               if not (spec.get("resourceGroup") or spec.get("resource")):
                   bad.append(f"{p}: spec needs a resourceGroup/resource (the generated kind)")
-              # paste-case: the OAS document the oasPath points at should be in the PR
-              oas = p.replace("restdefinition.yaml", "openapi.yaml")
+              # When oasPath is a configmap:// ref, the OAS lives in configmaps/<kind>-oas.yaml
+              # (a full ConfigMap manifest named <kind>-oas). templates/registry.yaml renders it
+              # alongside the RestDefinition; verify it's present in the PR.
               import os
-              if "configmap://" in str(spec.get("oasPath","")) and not os.path.exists(oas):
-                  bad.append(f"{p}: oasPath references a ConfigMap but {oas} is missing from the PR")
+              kind = p.split("/")[1]  # apis/<kind>/restdefinition.yaml
+              cm = f"configmaps/{kind}-oas.yaml"
+              if "configmap://" in str(spec.get("oasPath","")) and not os.path.exists(cm):
+                  bad.append(f"{p}: oasPath references a ConfigMap but {cm} is missing from the PR")
               print(f"OK  {p}  →  {spec.get('resource') or spec.get('resourceGroup')}")
           if bad:
               print("\nVALIDATION FAILED:"); [print("  -", b) for b in bad]; sys.exit(1)
