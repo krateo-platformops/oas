@@ -1,0 +1,53 @@
+# Validate the RestDefinitions an API-Builder PR proposes, BEFORE a human merges.
+# Parity with krateo-blueprints' pr-ci.yaml (that one helm-lints charts; this one
+# schema-checks the RestDefinition + OpenAPI each apis/<kind>/ carries). No cluster
+# credentials — this is a pure static gate (the "apply to cluster" is a deliberate,
+# composition-managed step, never a push from CI; see README "Status").
+name: pr-ci
+on:
+  pull_request:
+    paths: ['apis/**']
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate each apis/<kind>/restdefinition.yaml
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import glob, sys, yaml
+          bad = []
+          rds = glob.glob("apis/*/restdefinition.yaml")
+          if not rds:
+              print("No apis/*/restdefinition.yaml in this PR — nothing to validate.")
+              sys.exit(0)
+          for p in rds:
+              try:
+                  d = yaml.safe_load(open(p))
+              except Exception as e:
+                  bad.append(f"{p}: not valid YAML — {e}"); continue
+              if not isinstance(d, dict):
+                  bad.append(f"{p}: not a single YAML document"); continue
+              if d.get("kind") != "RestDefinition":
+                  bad.append(f"{p}: kind must be RestDefinition, got {d.get('kind')!r}")
+              av = str(d.get("apiVersion", ""))
+              if not av.startswith("ogen.krateo.io/"):
+                  bad.append(f"{p}: apiVersion must be ogen.krateo.io/*, got {av!r}")
+              spec = d.get("spec") or {}
+              if not spec.get("oasPath"):
+                  bad.append(f"{p}: spec.oasPath is required")
+              if not (spec.get("resourceGroup") or spec.get("resource")):
+                  bad.append(f"{p}: spec needs a resourceGroup/resource (the generated kind)")
+              # paste-case: the OAS document the oasPath points at should be in the PR
+              oas = p.replace("restdefinition.yaml", "openapi.yaml")
+              import os
+              if "configmap://" in str(spec.get("oasPath","")) and not os.path.exists(oas):
+                  bad.append(f"{p}: oasPath references a ConfigMap but {oas} is missing from the PR")
+              print(f"OK  {p}  →  {spec.get('resource') or spec.get('resourceGroup')}")
+          if bad:
+              print("\nVALIDATION FAILED:"); [print("  -", b) for b in bad]; sys.exit(1)
+          print(f"\nAll {len(rds)} RestDefinition(s) valid.")
+          PY
