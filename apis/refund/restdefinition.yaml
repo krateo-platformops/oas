@@ -1,0 +1,21 @@
+apiVersion: ogen.krateo.io/v1alpha1
+kind: RestDefinition
+metadata:
+  name: refund
+spec:
+  oasPath: configmap://krateo-system/refund-oas/openapi.yaml
+  resourceGroup: billing.acme.io
+  resource:
+    kind: Refund
+    identifiers:
+      - id
+    verbsDescription:
+      - action: create
+        method: POST
+        path: /refunds
+      - action: get
+        method: GET
+        path: /refunds/{id}
+      - action: delete
+        method: DELETE
+        path: /refunds/{id}
