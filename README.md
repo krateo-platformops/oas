@@ -26,7 +26,7 @@ in-cluster poll loop.
    (`RepoContent`/`PullRequest`). `pr-ci.yaml` statically validates each proposed RestDefinition.
 3. **Review & merge** — a human merges. **This is the hard gate** — nothing reaches the cluster before it.
 4. **Release** — on merge to `main`, `release-oci.yaml` packages + pushes the chart to
-   `oci://ghcr.io/braghettos/krateo/krateo-oas:<tag>`, and the `krateo-oas` installer-component pin
+   `oci://ghcr.io/krateo-platformops/charts/oas:<tag>`, and the `krateo-oas` installer-component pin
    is bumped to `<tag>` (a git commit — the durable component-pins path; no `kubectl apply`).
 5. **Materialise** — CDC pulls the new pinned chart version and renders it → the `RestDefinition`
    + OAS `ConfigMap` go live → oasgen-provider generates the CRD + controller and the new kind

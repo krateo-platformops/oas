@@ -13,6 +13,6 @@ type: application
 version: CHART_VERSION
 appVersion: CHART_VERSION
 
-home: https://github.com/braghettos/krateo-oas
+home: https://github.com/krateo-platformops/oas
 sources:
-  - https://github.com/braghettos/krateo-oas
+  - https://github.com/krateo-platformops/oas
