@@ -2,11 +2,13 @@
 # Parity with krateo-blueprints' pr-ci.yaml (that one helm-lints charts; this one
 # schema-checks the RestDefinition + OpenAPI each apis/<kind>/ carries). No cluster
 # credentials — this is a pure static gate (the "apply to cluster" is a deliberate,
-# composition-managed step, never a push from CI; see README "Status").
+# composition-managed step, never a push from CI; see docs/overview.md).
+# Runs on every PR (no paths filter): validate self-no-ops when a PR touches no
+# apis/**, and lint-docs (the shared Krateo Documentation Standard conformance
+# check) must gate docs-only PRs too.
 name: pr-ci
 on:
   pull_request:
-    paths: ['apis/**', 'configmaps/**']
 permissions:
   contents: read
 jobs:
@@ -54,3 +56,8 @@ jobs:
               print("\nVALIDATION FAILED:"); [print("  -", b) for b in bad]; sys.exit(1)
           print(f"\nAll {len(rds)} RestDefinition(s) valid.")
           PY
+  # Krateo Documentation Standard conformance (shared org workflow): the invariant
+  # docs/ file set, OKF frontmatter, link integrity, banned dead-org strings,
+  # examples pairing.
+  lint-docs:
+    uses: krateo-platformops/.github/.github/workflows/lint-docs.yaml@main

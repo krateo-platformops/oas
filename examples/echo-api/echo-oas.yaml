@@ -1,0 +1,57 @@
+# The OAS ConfigMap the RestDefinition's oasPath references. Destination in a
+# real PR: configmaps/echo-oas.yaml. Contract: name is <kind>-oas and the
+# OpenAPI document lives under the openapi.yaml key.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: echo-oas
+data:
+  openapi.yaml: |
+    openapi: 3.0.0
+    info:
+      title: Echo API
+      version: 1.0.0
+    paths:
+      /echoes:
+        post:
+          operationId: createEcho
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Echo'
+          responses:
+            '201':
+              description: created
+      /echoes/{id}:
+        get:
+          operationId: getEcho
+          parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                type: string
+          responses:
+            '200':
+              description: ok
+        delete:
+          operationId: deleteEcho
+          parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                type: string
+          responses:
+            '204':
+              description: deleted
+    components:
+      schemas:
+        Echo:
+          type: object
+          properties:
+            id:
+              type: string
+            message:
+              type: string
