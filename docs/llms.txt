@@ -1,0 +1,15 @@
+# krateo-oas — LLM doc index (pinned: main, post-0.1.0; regenerate the pin on release)
+# One line per file. This repo is a ChartRepo: a singleton API-registry chart CDC renders
+# so a merged API-Builder PR (RestDefinition + OAS ConfigMap) becomes a live K8s kind.
+docs/index.md: the map of this bundle
+docs/overview.md: the GitOps publish flow, registry-chart mechanics, why a chart not a poller
+docs/usage.md: CDC/installer consumption, add/remove an API by PR, local render recipe
+docs/configuration.md: the values surface (deliberately empty singleton; content = merged files)
+docs/api.md: the contribution file contract (pr-ci checks) + what the chart emits
+docs/examples.md: examples index
+docs/release.md: tag (no v prefix) -> OCI chart on GHCR -> pin bump; registry publish status
+docs/log.md: curated history
+examples/echo-api/README.md: a complete valid contribution (Echo API) with local validate+render
+templates/registry.yaml: the whole template surface (two .Files.Glob loops, emitted verbatim)
+apis/refund/restdefinition.yaml: the merged seed RestDefinition (Refund, billing.acme.io)
+configmaps/refund-oas.yaml: the seed OAS ConfigMap (refund-oas, key openapi.yaml)

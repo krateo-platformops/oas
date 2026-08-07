@@ -1,0 +1,25 @@
+# A complete, valid API-Builder RestDefinition. Destination in a real PR:
+# apis/echo/restdefinition.yaml (the directory name is the <kind> pr-ci pairs
+# with configmaps/echo-oas.yaml). No namespace: CDC applies it into the
+# composition's namespace (krateo-system), which the oasPath below references.
+apiVersion: ogen.krateo.io/v1alpha1
+kind: RestDefinition
+metadata:
+  name: echo
+spec:
+  oasPath: configmap://krateo-system/echo-oas/openapi.yaml
+  resourceGroup: demo.krateo.io
+  resource:
+    kind: Echo
+    identifiers:
+      - id
+    verbsDescription:
+      - action: create
+        method: POST
+        path: /echoes
+      - action: get
+        method: GET
+        path: /echoes/{id}
+      - action: delete
+        method: DELETE
+        path: /echoes/{id}

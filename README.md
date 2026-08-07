@@ -1,41 +1,57 @@
 # krateo-oas
 
-OpenAPI → Kubernetes-kind GitOps publish path for the Krateo **API Builder** (KOG).
+OpenAPI → Kubernetes-kind GitOps publish path for the Krateo **API Builder** (KOG): a merged PR to this repo becomes a live cluster kind.
 
-This repo is **also a Helm chart**: its root is a singleton "API registry" chart that the Krateo
-composition-dynamic-controller (CDC) renders. Merged API-Builder artifacts under `apis/**` and
-`configmaps/**` become **live cluster resources** — a merged PR is a live kind. The human PR merge
-is the **hard gate**: nothing reaches the cluster before it.
+## What is this
 
+This repo is **also a Helm chart**: its root is a singleton "API registry" chart that the
+Krateo composition-dynamic-controller (CDC) renders. Merged API-Builder artifacts under
+`apis/**` (RestDefinitions) and `configmaps/**` (their OpenAPI documents) become live
+cluster resources; oasgen-provider then generates a CRD + controller per RestDefinition.
+The human PR merge is the **hard gate**: nothing reaches the cluster before it.
+Full picture: [docs/index.md](docs/index.md).
+
+## Install
+
+You don't install this repo by hand — CDC renders it from a pinned chart version via a
+`CompositionDefinition` (see [docs/usage.md](docs/usage.md) for the exact CR and the
+installer wiring). To render it locally (no cluster):
+
+```sh
+git clone https://github.com/krateo-platformops/oas.git
+cp -R oas /tmp/krateo-oas-render
+sed -i '' 's/CHART_VERSION/0.0.0-local/g' /tmp/krateo-oas-render/Chart.yaml   # Linux: sed -i
+helm template krateo-oas /tmp/krateo-oas-render
 ```
-apis/<kind>/restdefinition.yaml      # the RestDefinition CR (kind, group, verbs → the generated K8s kind)
-configmaps/<kind>-oas.yaml           # a ConfigMap manifest (name: <kind>-oas) holding the OpenAPI doc,
-                                     # referenced by the RestDefinition's oasPath configmap:// URL
-Chart.yaml, values.yaml, values.schema.json, templates/registry.yaml   # the registry chart
-```
 
-`templates/registry.yaml` globs `configmaps/*-oas.yaml` + `apis/**/restdefinition.yaml` and emits
-each verbatim, so CDC **owns, drift-heals, and prunes** them natively — no bespoke controller, no
-in-cluster poll loop.
+## Configure
 
-## The flow
+See [docs/configuration.md](docs/configuration.md). This is a singleton registry chart
+with **no per-instance configuration** — its real content is the merged files:
 
-1. **Author** — the API Builder (Autopilot rail) proposes the `RestDefinition` + OAS `ConfigMap`;
-   the human reviews the full YAML at a blast-radius gate in the rail.
-2. **PR** — a `builder/<kind>` branch + PR lands here, authored via the github.krateo.io provider CRs
-   (`RepoContent`/`PullRequest`). `pr-ci.yaml` statically validates each proposed RestDefinition.
-3. **Review & merge** — a human merges. **This is the hard gate** — nothing reaches the cluster before it.
-4. **Release** — on merge to `main`, `release-oci.yaml` packages + pushes the chart to
-   `oci://ghcr.io/krateo-platformops/charts/oas:<tag>`, and the `krateo-oas` installer-component pin
-   is bumped to `<tag>` (a git commit — the durable component-pins path; no `kubectl apply`).
-5. **Materialise** — CDC pulls the new pinned chart version and renders it → the `RestDefinition`
-   + OAS `ConfigMap` go live → oasgen-provider generates the CRD + controller and the new kind
-   (`Refund · billing.acme.io`, etc.) appears Ready. A merged deletion PR → next version → CDC prunes.
+| Setting | Default | Effect |
+|---|---|---|
+| `global` | `{}` (empty) | Helm globals passthrough; exists only so CDC generates a (trivial) CRD from `values.schema.json` |
+| `apis/<kind>/restdefinition.yaml` | — | a merged RestDefinition = a generated Kubernetes kind |
+| `configmaps/<kind>-oas.yaml` | — | the OpenAPI ConfigMap the RestDefinition's `oasPath` references |
 
-## Why a chart, not a poller
+## Examples
 
-CDC renders a Composition from a **pinned chart version** and can't chase a git branch, so the
-merge→live trigger is the release step (step 4), not an in-cluster watch. That keeps the whole loop
-inside native CDC semantics — apply, self-heal, and prune are the controller's job — and adds no
-runtime component. The only new automation is standard release plumbing (tag + publish + pin bump),
-and the human merge stays the authoritative gate.
+- [examples/echo-api](examples/echo-api) — a complete, valid API-Builder contribution (RestDefinition + OAS ConfigMap) you can validate and render locally, then propose by PR.
+
+## Docs
+
+- [docs/index.md](docs/index.md) — the map
+- [docs/overview.md](docs/overview.md) — the GitOps publish path and why it's a chart, not a poller
+- [docs/usage.md](docs/usage.md) — how CDC/the installer consume it; how to add or remove an API
+- [docs/configuration.md](docs/configuration.md) — the (deliberately empty) values surface
+- [docs/api.md](docs/api.md) — the file contract for contributions + what the chart emits
+- [docs/examples.md](docs/examples.md) — examples index
+- [docs/release.md](docs/release.md) — how a release ships (tag → OCI chart → pin bump)
+- [docs/log.md](docs/log.md) — curated history
+
+## Develop & release
+
+`helm lint` + `helm template` on a placeholder-substituted copy (see Install above);
+PRs touching `apis/**`/`configmaps/**` are statically validated by
+[pr-ci.yaml](.github/workflows/pr-ci.yaml). Release runbook: [docs/release.md](docs/release.md).
