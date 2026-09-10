@@ -1,0 +1,21 @@
+apiVersion: widgets.templates.krateo.io/v1beta1
+kind: Flex
+metadata:
+  name: page-tk-sock-shop2
+  namespace: krateo-system
+spec:
+  widgetData:
+    allowedResources:
+      - tables
+    gap: middle
+    items:
+      - resourceRefId: tk-sock-shop2-compositions-table
+    vertical: true
+  resourcesRefs:
+    items:
+      - apiVersion: widgets.templates.krateo.io/v1beta1
+        id: tk-sock-shop2-compositions-table
+        name: tk-sock-shop2-compositions-table
+        namespace: krateo-system
+        resource: tables
+        verb: GET
