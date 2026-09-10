@@ -1,0 +1,34 @@
+apiVersion: ogen.krateo.io/v1alpha1
+kind: RestDefinition
+metadata:
+  name: pet
+  namespace: krateo-system
+spec:
+  oasPath: https://petstore.swagger.io/v2/swagger.json
+  resourceGroup: petstore.swagger.io
+  resource:
+    kind: Pet
+    identifiers:
+      - id
+    verbsDescription:
+      - action: create
+        method: POST
+        path: /v2/pet
+      - action: update
+        method: PUT
+        path: /v2/pet
+      - action: get
+        method: GET
+        path: /v2/pet/{petId}
+        requestFieldMapping:
+          - inPath: petId
+            inCustomResource: spec.id
+      - action: delete
+        method: DELETE
+        path: /v2/pet/{petId}
+        requestFieldMapping:
+          - inPath: petId
+            inCustomResource: spec.id
+      - action: findby
+        method: GET
+        path: /v2/pet/findByStatus
