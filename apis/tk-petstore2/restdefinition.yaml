@@ -1,0 +1,28 @@
+apiVersion: ogen.krateo.io/v1alpha1
+kind: RestDefinition
+metadata:
+  name: tk-petstore2
+  namespace: krateo-system
+spec:
+  oasPath: https://petstore3.swagger.io/api/v3/openapi.json
+  resourceGroup: petstore2.ogen.krateo.io
+  resource:
+    kind: Pet2
+    identifiers:
+      - name
+    verbsDescription:
+      - action: findby
+        method: GET
+        path: /pet/findByStatus
+      - action: get
+        method: GET
+        path: /pet/{petId}
+      - action: create
+        method: POST
+        path: /pet
+      - action: update
+        method: PUT
+        path: /pet
+      - action: delete
+        method: DELETE
+        path: /pet/{petId}
