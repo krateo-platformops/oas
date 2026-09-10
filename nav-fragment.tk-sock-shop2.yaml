@@ -1,0 +1,6 @@
+item:
+  icon: fa-table
+  label: tk-sock-shop2
+  order: 950
+  page: tk-sock-shop2
+  path: /tk-sock-shop2
