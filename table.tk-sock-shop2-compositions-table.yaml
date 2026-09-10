@@ -1,0 +1,33 @@
+apiVersion: widgets.templates.krateo.io/v1beta1
+kind: Table
+metadata:
+  name: tk-sock-shop2-compositions-table
+  namespace: krateo-system
+spec:
+  apiRef:
+    name: compositions-list
+    namespace: krateo-system
+  resourcesRefs:
+    items: []
+  widgetData:
+    allowedResources: []
+    bordered: false
+    columns:
+      - title: Name
+        valueKey: name
+      - title: Type
+        valueKey: kind
+      - title: Namespace
+        valueKey: ns
+      - title: Status
+        valueKey: status
+      - title: Created
+        valueKey: age
+    dataSource: []
+    pagination:
+      defaultPageSize: 10
+    rowNavigateTo: /compositions/{ns}/{name}
+    size: small
+  widgetDataTemplate:
+    - expression: ${ [ (.list // [])[] | select(.ns == "krateo-system") | [ {valueKey:"name",kind:"jsonSchemaType",type:"string",stringValue:.name}, {valueKey:"kind",kind:"jsonSchemaType",type:"string",stringValue:.kind}, {valueKey:"ns",kind:"jsonSchemaType",type:"string",stringValue:.ns}, {valueKey:"status",kind:"tag",stringValue:(.state // "pending"),color:(if .state == "healthy" then "green" elif .state == "failed" then "red" else "orange" end)}, {valueKey:"age",kind:"jsonSchemaType",type:"string",stringValue:.ts,format:"relative"} ] ] }
+      forPath: dataSource
